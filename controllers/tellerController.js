@@ -1,35 +1,40 @@
 const Teller = require("../models/tellerModel");
 const bcrypt = require("bcryptjs");
+const { createSecretToken } = require("../utilities/Token");
 
 // Create new teller
-const addTeller = async (req, res) => {
-  //get details from request
-  let { username, staffId, password, branch, role } = req.body;
-
-  //encrypt password
-  const hashedPassword = bcrypt.hashSync(password, 8);
+const addTeller = async (req, res, next) => {
   try {
+    //get details from request
+    const { username, staffId, password, branch, role } = req.body;
     //admin creation
     const isAdminAccount = (await Teller.countDocuments()) === 0;
     //find if staff ID already exists
-    let teller = await Teller.findOne().where("staffId").equals(staffId);
+    const teller = await Teller.findOne().where("staffId").equals(staffId);
     if (teller) {
       return res.json({ msg: "Staff ID already in use" });
     }
     //create new teller
-    let newTeller = await Teller.create({
+    const newTeller = await Teller.create({
       username,
       staffId,
       branch,
-      password: hashedPassword,
+      password,
       role: isAdminAccount ? "admin" : "user",
     });
-    if (!newTeller) {
-      return res.json({ msg: "User creation failed" });
-    }
-    res.json({ newTeller, msg: "New user added" });
+    const token = createSecretToken(newTeller._id);
+    res.cookie("token", token, {
+      withCredentials: true,
+      httpOnly: false,
+    });
+    res.status(200).json({ success: true, msg: "New user added", newTeller });
+    // if (!newTeller) {
+    //   return res.json({ msg: "User creation failed" });
+    // }
+    next();
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.log(err);
+    //res.status(500).json({ msg: err.message });
   }
 };
 
@@ -126,26 +131,38 @@ const deleteTeller = async (req, res) => {
 };
 
 //login
-const login = async (req, res) => {
-  //get data from form
-  const { staffId, password } = req.body;
+const login = async (req, res, next) => {
   try {
+    //get data from form
+    const { staffId, password } = req.body;
+
     //find user exists
     const teller = await Teller.findOne({ staffId });
-    if (!teller) return res.json({ msg: "User not found" });
+    if (!teller) return res.json({ msg: "Invalid credentials" });
 
     //if user found compare password entered to password in database
     const comparePassword = bcrypt.compareSync(password, teller.password);
     if (!comparePassword) return res.json({ msg: "Invalid credentials" });
+
+    //create token
+    const token = createSecretToken(teller._id);
+    res.cookie("token", token, {
+      withCredentials: true,
+      httpOnly: false,
+    });
+
     //log user in and send data to frontend
     res.status(200).json({
       msg: "Log in successful",
+      success: true,
       user: teller.role,
       staffId: teller.staffId,
       teller,
     });
+    next();
   } catch (error) {
-    res.status(401).json({ msg: error.message });
+    console.log(error);
+    //res.status(401).json({ msg: error.message });
   }
 };
 module.exports = {

@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 dotenv.config();
+const cookieParser = require("cookie-parser");
 const { PORT, MONGO_URL } = process.env;
 const app = express();
 
@@ -48,16 +49,20 @@ mongoose
 
 //connectToDB();
 
+app.use(cookieParser());
+
 app.use(express.json());
 
 const accountRoutes = require("./router/accountRoute");
 const tellerRoutes = require("./router/tellerRoute");
 const transactionRoute = require("./router/transactionRoute");
+const authRoute = require("./router/authRoute");
 
 //ROUTES
 app.use("/account", accountRoutes);
 app.use("/teller", tellerRoutes);
 app.use("/transaction", transactionRoute);
+app.use("/", authRoute);
 
 app.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);

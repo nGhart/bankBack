@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const TellerSchema = mongoose.Schema(
   {
     username: {
       type: String,
       required: [true, "username required"],
-      unique: true,
     },
     staffId: {
       type: String,
@@ -29,6 +29,14 @@ const TellerSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+TellerSchema.pre("save", async function () {
+  this.password = await bcrypt.hash(this.password, 12);
+});
+
+// TellerSchema.pre("save", function () {
+//   this.password = bcrypt.hash(this.password, 12);
+// });
 
 const Teller = mongoose.model("teller", TellerSchema);
 module.exports = Teller;
