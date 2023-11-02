@@ -11,7 +11,7 @@ app.use(
   cors({
     origin: [
       "*",
-      "https://back-front.vercel.app/",
+      "https://back-front.vercel.app",
       //"https://teller-zeta.vercel.app/"
     ],
     credentials: true,
